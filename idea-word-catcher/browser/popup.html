@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <header>
+    <span id="statusDot" class="dot"></span>
+    <span id="statusText">连接中…</span>
+    <span id="wordCount" class="count"></span>
+    <button id="refreshBtn" class="icon-btn" title="刷新">⟳</button>
+  </header>
+
+  <div id="offlineBanner" class="banner hidden">未连接：请先启动 IDEA（Word Catcher 插件）</div>
+
+  <div class="toolbar">
+    <button id="highlightBtn" title="网页生词高亮开关">高亮</button>
+    <button id="flashcardsBtn" title="生词卡片自测">卡片</button>
+    <button id="enrichBtn" title="给词典信息不全的生词补查">补全词典</button>
+    <button id="copyBtn" title="复制全部单词（换行分隔，可直接导入 Anki）">复制全部</button>
+    <button id="csvBtn" title="导出 CSV（与 IDE 导出同格式）">导出 CSV</button>
+    <select id="voiceSel" title="朗读音色（IDEA 未连接时的浏览器朗读使用；Edge 可选在线 Natural 音色）" disabled></select>
+  </div>
+
+  <div class="list-header">
+    <span>单词</span>
+    <button id="sortBtn" title="切换排序：最近记录 / 次数">次数 ↕</button>
+  </div>
+
+  <main id="list"></main>
+
+  <footer id="toast" class="hidden"></footer>
+
+  <script type="module" src="popup.js"></script>
+</body>
+</html>

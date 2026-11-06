@@ -1,0 +1,106 @@
+plugins {
+    id 'java'
+    id 'org.jetbrains.intellij.platform' version '2.18.1'
+}
+
+group = 'com.gientech'
+version = '1.3.2'
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_21
+    targetCompatibility = JavaVersion.VERSION_21
+}
+
+// 优先用本机已安装的 IDEA CE 作为编译目标（可用 -PlocalIdeaPath=... 覆盖），
+// 避免 Gradle 下载整套 IDE；没有本机 IDE 时回退为远程解析。
+def localIdea = providers.gradleProperty('localIdeaPath')
+        .orElse(providers.systemProperty('localIdeaPath'))
+        .getOrElse('D:/tools/ideaIC-2025.2.6.2.win')
+
+repositories {
+    maven { url 'https://maven.aliyun.com/repository/public' }
+    mavenCentral()
+    intellijPlatform {
+        defaultRepositories()
+    }
+}
+
+dependencies {
+    intellijPlatform {
+        if (new File(localIdea).isDirectory()) {
+            local(localIdea)
+        } else {
+            intellijIdeaCommunity('2025.2.6')
+        }
+    }
+}
+
+intellijPlatform {
+    pluginConfiguration {
+        ideaVersion {
+            sinceBuild = '252'
+            untilBuild = '299.*'
+        }
+    }
+    // 生词本没有设置页，跳过可搜索项索引（避免构建时启动无头 IDE）
+    buildSearchableOptions = false
+    // 未使用 GUI Designer 表单，也不需要 @NotNull 运行时插桩；
+    // 且该任务与 Microsoft OpenJDK 的目录结构不兼容（Packages 目录缺失）
+    instrumentCode = false
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+}
+
+// ---------- 打包 / 安装 ----------
+
+tasks.register('packagePlugin') {
+    group = 'word catcher'
+    description = '构建插件并把当前版本安装包复制到项目 dist/ 目录（同时清理旧版本）'
+    dependsOn tasks.named('buildPlugin')
+    doLast {
+        def currentName = "idea-word-catcher-${version}.zip"
+        def zip = new File(layout.buildDirectory.dir('distributions').get().asFile, currentName)
+        if (!zip.isFile()) {
+            throw new GradleException("没有找到构建产物 ${currentName}")
+        }
+        def target = layout.projectDirectory.dir('dist').asFile
+        // 清掉 dist 里的旧版本，避免装错包
+        target.listFiles()?.findAll { it.name.matches(/idea-word-catcher-.*\.zip/) && it.name != currentName }?.each { it.delete() }
+        copy {
+            from zip
+            into target
+        }
+        println "打包完成: ${new File(target, currentName).absolutePath}"
+    }
+}
+
+// 默认安装到本机 IdeaIC2025.2 的插件目录，可用 -PideaConfigDir=... 覆盖
+def ideaConfigDir = providers.gradleProperty('ideaConfigDir')
+        .orElse(providers.systemProperty('ideaConfigDir'))
+        .orElse(providers.environmentVariable('IDEA_CONFIG_DIR'))
+        .getOrElse(System.getProperty('user.home') + '/AppData/Roaming/JetBrains/IdeaIC2025.2')
+
+tasks.register('installPlugin') {
+    group = 'word catcher'
+    description = '构建并解压安装到本机 IDEA 插件目录（重启 IDEA 后生效）'
+    dependsOn tasks.named('buildPlugin')
+    doLast {
+        def distDir = layout.buildDirectory.dir('distributions').get().asFile
+        def zip = distDir.listFiles()?.findAll { it.name.endsWith('.zip') }?.max { it.lastModified() }
+        if (zip == null) {
+            throw new GradleException('没有找到构建产物 zip')
+        }
+        def pluginsDir = new File(ideaConfigDir, 'plugins')
+        // 清掉 lib 里的旧版本 jar，避免多版本共存导致类加载冲突
+        def libDir = new File(pluginsDir, 'idea-word-catcher/lib')
+        libDir.listFiles()?.findAll { it.name.matches(/idea-word-catcher-.*\.jar/) }?.each { it.delete() }
+        copy {
+            from zipTree(zip)
+            into pluginsDir
+        }
+        println "已安装到: ${new File(pluginsDir, 'idea-word-catcher').absolutePath}"
+        println '重启 IDEA 后生效（如果 IDEA 正在运行，建议先退出再安装）。'
+    }
+}

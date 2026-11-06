@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <title>本地密码库 · Popup 预览</title>
+  <style>
+    body { background: #d8dee7; display: flex; justify-content: center; padding: 30px 0; }
+    #host { box-shadow: 0 6px 30px rgba(0,0,0,.25); border-radius: 4px; overflow: hidden; }
+  </style>
+</head>
+<body>
+  <div id="host"></div>
+  <script src="mock_chrome.js"></script>
+  <script type="module">
+    // 拉取真实 popup.html：替换 css 相对路径、去掉自身 script，再手动加载 popup.js
+    const res = await fetch('../extension/popup/popup.html');
+    let html = await res.text();
+    html = html.replace(/<script[\s\S]*?<\/script>/g, '');
+    html = html.replaceAll('popup.css', '../extension/popup/popup.css');
+    document.getElementById('host').innerHTML = html;
+    const s = document.createElement('script');
+    s.type = 'module';
+    s.src = '../extension/popup/popup.js';
+    document.body.appendChild(s);
+  </script>
+</body>
+</html>

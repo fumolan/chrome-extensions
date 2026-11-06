@@ -1,0 +1,50 @@
+<idea-plugin>
+    <id>com.gientech.wordcatcher</id>
+    <name>Word Catcher</name>
+    <vendor>gientech</vendor>
+
+    <description><![CDATA[
+        <p>生词采集器：阅读代码 / 文档时，把生僻英文单词一键记入生词本。</p>
+        <ul>
+            <li>选中单词（或把光标放在单词上）按 <b>Alt+Shift+W</b>，或在编辑器右键菜单点「记入生词本」</li>
+            <li>自动去重并累计遇到次数，记录上下文与来源文件</li>
+            <li>记录时自动查在线词典：中文释义 + <b>词性</b> + <b>音标</b> + <b>例句</b> + 词源（必应词典 → Free Dictionary API + Google 多源降级，结果缓存；必应词典国内直连可用）</li>
+            <li><b>词根词缀拆解</b>（本地离线）：如 prediction → pre-(预先) + dict(说) + -ion(行为/结果)</li>
+            <li>编辑器内高亮所有已记录生词（工具窗可一键开关）</li>
+            <li>系统 TTS 朗读生词（双击生词本列表行，或生词卡片上的「朗读」）</li>
+            <li>「生词卡片」随机翻卡自测，背面显示词性释义 / 词根 / 例句，统计认识 / 不认识</li>
+            <li>「生词本」工具窗：查看（含例句列 + 底部详情区）/ 删除 / 清空 / 复制 / 导出 CSV（含音标、词性、词根、例句列）</li>
+            <li>「补全词典」一键给词典信息不全的旧生词补查</li>
+            <li>全局保存（跨项目共用），数据文件：IDE配置目录/wordCatcher.xml</li>
+        </ul>
+    ]]></description>
+
+    <depends>com.intellij.modules.platform</depends>
+
+    <extensions defaultExtensionNs="com.intellij">
+        <applicationService serviceImplementation="com.gientech.wordcatcher.WordStorage"/>
+        <applicationService serviceImplementation="com.gientech.wordcatcher.WordCatcherHttpService"/>
+        <notificationGroup id="Word Catcher Notifications" displayType="BALLOON"/>
+        <toolWindow id="生词本"
+                    anchor="right"
+                    icon="AllIcons.Nodes.Bookmark"
+                    factoryClass="com.gientech.wordcatcher.WordCatcherToolWindowFactory"/>
+    </extensions>
+
+    <applicationListeners>
+        <listener class="com.gientech.wordcatcher.WordHighlighter"
+                  topic="com.intellij.openapi.editor.event.EditorFactoryListener"/>
+        <listener class="com.gientech.wordcatcher.WordCatcherStartup"
+                  topic="com.intellij.ide.AppLifecycleListener"/>
+    </applicationListeners>
+
+    <actions>
+        <action id="WordCatcher.CaptureWord"
+                class="com.gientech.wordcatcher.CaptureWordAction"
+                text="记入生词本"
+                description="把选中的单词记录到生词本">
+            <add-to-group group-id="EditorPopupMenu" anchor="first"/>
+            <keyboard-shortcut keymap="$default" first-keystroke="alt shift W"/>
+        </action>
+    </actions>
+</idea-plugin>

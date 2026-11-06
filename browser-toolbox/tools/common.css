@@ -1,0 +1,264 @@
+/* 工具页公共样式：所有 tools/*/index.html 引用 */
+:root {
+  --bg: #f5f6f8;
+  --card: #ffffff;
+  --fg: #1f2328;
+  --muted: #656d76;
+  --line: #d8dee4;
+  --accent: #0969da;
+  --danger: #cf222e;
+  --ok: #1a7f37;
+  --chip-bg: #ddf4ff;
+  --chip-fg: #0550ae;
+  --j-key: #0550ae;
+  --j-str: #0a7d32;
+  --j-num: #953800;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0d1117;
+    --card: #161b22;
+    --fg: #e6edf3;
+    --muted: #8b949e;
+    --line: #30363d;
+    --accent: #58a6ff;
+    --danger: #f85149;
+    --ok: #3fb950;
+    --chip-bg: #121d2f;
+    --chip-fg: #79c0ff;
+    --j-key: #79c0ff;
+    --j-str: #7ee787;
+    --j-num: #ffa657;
+  }
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--fg);
+  font: 14px/1.6 "Segoe UI", "Microsoft YaHei", sans-serif;
+}
+
+.wrap {
+  max-width: 880px;
+  margin: 0 auto;
+  padding: 16px;
+}
+
+/* 顶栏 */
+.topbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.topbar .back {
+  color: var(--accent);
+  text-decoration: none;
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.topbar h1 {
+  margin: 0;
+  font-size: 17px;
+  flex: 1;
+}
+
+/* 卡片 */
+.card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 14px;
+  margin-bottom: 14px;
+}
+
+.card .card-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.card .card-head h2 {
+  margin: 0;
+  font-size: 14px;
+  flex: 1;
+}
+
+/* 按钮 */
+button {
+  font: inherit;
+  padding: 5px 12px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--card);
+  color: var(--fg);
+  cursor: pointer;
+}
+
+button:hover { border-color: var(--accent); }
+button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+
+/* 输入 */
+textarea {
+  width: 100%;
+  min-height: 96px;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--bg);
+  color: var(--fg);
+  font: 12px/1.5 Consolas, monospace;
+  resize: vertical;
+  word-break: break-all;
+}
+
+textarea:focus { outline: none; border-color: var(--accent); }
+
+/* 选项行：工具页内的格式控制（缩进/排序等） */
+.opts {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin-top: 10px;
+  font-size: 13px;
+}
+
+.opts label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--muted);
+}
+
+select {
+  font: inherit;
+  padding: 4px 8px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--card);
+  color: var(--fg);
+}
+
+input[type="checkbox"] {
+  accent-color: var(--accent);
+}
+
+/* 状态条 */
+.status {
+  display: none;
+  margin-bottom: 14px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 13px;
+}
+
+.status.error { display: block; background: color-mix(in srgb, var(--danger) 12%, transparent); color: var(--danger); }
+.status.ok { display: block; background: color-mix(in srgb, var(--ok) 12%, transparent); color: var(--ok); }
+
+/* 解析失败诊断卡 */
+pre.errpos {
+  margin: 0 0 10px;
+  padding: 10px;
+  background: var(--bg);
+  border-left: 3px solid var(--danger);
+  border-radius: 6px;
+  font: 12px/1.6 Consolas, monospace;
+  white-space: pre-wrap;
+  word-break: break-all;
+  color: var(--danger);
+}
+
+ul.hints {
+  margin: 0;
+  padding-left: 20px;
+  font-size: 13px;
+}
+
+ul.hints li { margin: 3px 0; }
+
+/* 标签 chips */
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.chip {
+  padding: 2px 10px;
+  border-radius: 999px;
+  background: var(--chip-bg);
+  color: var(--chip-fg);
+  font-size: 12px;
+  font-family: Consolas, monospace;
+  word-break: break-all;
+}
+
+/* 键值行 */
+.kv {
+  display: flex;
+  gap: 8px;
+  padding: 2px 0;
+  font-size: 13px;
+}
+
+.kv .k {
+  color: var(--muted);
+  min-width: 110px;
+  flex-shrink: 0;
+}
+
+.kv .v {
+  font-family: Consolas, monospace;
+  word-break: break-all;
+}
+
+/* JSON 显示 */
+pre.json {
+  margin: 0;
+  padding: 12px;
+  background: var(--bg);
+  border-radius: 8px;
+  font: 12px/1.6 Consolas, monospace;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+/* 树形折叠视图 */
+.tree {
+  padding: 12px;
+  background: var(--bg);
+  border-radius: 8px;
+  font: 12px/1.7 Consolas, monospace;
+  word-break: break-all;
+}
+
+.tree .tn-head { cursor: pointer; border-radius: 4px; }
+.tree .tn-head:hover { background: color-mix(in srgb, var(--accent) 10%, transparent); }
+.tree .tg { display: inline-block; width: 13px; color: var(--muted); }
+.tree .tn-kids { margin-left: 7px; padding-left: 12px; border-left: 1px dotted var(--line); }
+.tree .tn .sum { display: none; color: var(--muted); }
+.tree .tn.collapsed > .tn-kids,
+.tree .tn.collapsed > .tn-end { display: none; }
+.tree .tn.collapsed > .tn-head .sum { display: inline; }
+.tree .tn.collapsed > .tn-head > .brace { display: none; }
+
+.btn-sm { padding: 2px 8px; font-size: 12px; }
+
+.j-key { color: var(--j-key); }
+.j-str { color: var(--j-str); }
+.j-num { color: var(--j-num); }
+.j-bool { color: var(--j-num); font-style: italic; }
+
+/* 提示文字 */
+.muted {
+  color: var(--muted);
+  font-size: 12px;
+}

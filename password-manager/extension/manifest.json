@@ -1,0 +1,28 @@
+{
+  "manifest_version": 3,
+  "name": "本地密码库",
+  "description": "本地加密的密码管理器：主密码 + AES-256-GCM，数据仅存本地，支持搜索、一键复制、密码生成与自动填充。",
+  "version": "1.0.0",
+  "minimum_chrome_version": "102",
+  "icons": {
+    "16": "icons/icon16.png",
+    "32": "icons/icon32.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "action": {
+    "default_title": "本地密码库",
+    "default_popup": "popup/popup.html",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "32": "icons/icon32.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+  "permissions": ["storage", "alarms", "activeTab", "scripting", "downloads"]
+}

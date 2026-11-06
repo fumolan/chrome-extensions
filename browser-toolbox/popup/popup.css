@@ -1,0 +1,100 @@
+:root {
+  --bg: #f5f6f8;
+  --card: #ffffff;
+  --fg: #1f2328;
+  --muted: #656d76;
+  --line: #d8dee4;
+  --accent: #0969da;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0d1117;
+    --card: #161b22;
+    --fg: #e6edf3;
+    --muted: #8b949e;
+    --line: #30363d;
+    --accent: #58a6ff;
+  }
+}
+
+* {
+  box-sizing: border-box; /* 无这条时 width:320 + padding 会溢出弹窗，右边被裁 */
+}
+
+body {
+  width: 340px;
+  margin: 0;
+  padding: 0; /* 不用 body padding：Chrome 按内容边缘定弹窗宽，右侧 padding 会被裁掉 */
+  background: var(--bg);
+  color: var(--fg);
+  font: 13px/1.45 "Segoe UI", "Microsoft YaHei", sans-serif;
+}
+
+header {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  margin: 10px 12px 8px;
+}
+
+h1 {
+  margin: 0;
+  font-size: 14px;
+}
+
+.count {
+  color: var(--muted);
+  font-size: 11px;
+}
+
+#grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  margin: 0 10px 10px; /* 留白用 margin 实现，保证在弹窗宽度内可见 */
+}
+
+.tool {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0; /* 网格项默认 min-width:auto，防止内容把列撑出弹窗 */
+  padding: 7px 8px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--card);
+  color: var(--fg);
+  cursor: pointer;
+  text-align: left;
+  transition: border-color 0.15s, transform 0.1s;
+}
+
+.tool:hover {
+  border-color: var(--accent);
+  transform: translateY(-1px);
+}
+
+.tool .icon {
+  font-size: 18px;
+  white-space: nowrap; /* 防止 { } 这类文本图标被折行 */
+}
+
+.tool .meta {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.tool .name {
+  font-weight: 600;
+  font-size: 13px;
+}
+
+.tool .desc {
+  color: var(--muted);
+  font-size: 11px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

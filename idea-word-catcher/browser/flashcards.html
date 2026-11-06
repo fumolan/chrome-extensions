@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <title>生词卡片 · Word Catcher</title>
+  <link rel="stylesheet" href="flashcards.css">
+</head>
+<body>
+  <header>
+    <span class="title">生词卡片</span>
+    <span id="progress"></span>
+    <select id="voiceSel" title="朗读音色（IDEA 未连接时的浏览器朗读使用）" disabled></select>
+  </header>
+
+  <div id="banner" class="banner hidden"></div>
+
+  <main>
+    <div id="card" class="card hidden">
+      <div id="cardWord" class="card-word"></div>
+      <div id="cardPhonetic" class="card-phonetic"></div>
+      <div id="cardContext" class="card-context"></div>
+      <div id="cardMeaning" class="card-meaning"></div>
+      <div id="cardRoot" class="card-extra"></div>
+      <div id="cardExample" class="card-extra"></div>
+    </div>
+    <div id="summary" class="card hidden"></div>
+
+    <div class="buttons">
+      <button id="speakBtn">🔊 朗读</button>
+      <button id="flipBtn" class="primary">显示释义</button>
+      <button id="skipBtn">跳过</button>
+      <button id="knowBtn" class="ok hidden">认识 ✓</button>
+      <button id="unknownBtn" class="bad hidden">不认识 ✗</button>
+      <button id="restartBtn" class="primary hidden">重新开始</button>
+      <button id="closeBtn" class="hidden">关闭</button>
+    </div>
+  </main>
+
+  <script type="module" src="flashcards.js"></script>
+</body>
+</html>

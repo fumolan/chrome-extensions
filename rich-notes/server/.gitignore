@@ -1,0 +1,7 @@
+node_modules/
+notes.db
+notes.db-journal
+notes.db-wal
+notes.db-shm
+# .env 含数据库密码，不要提交到仓库
+.env

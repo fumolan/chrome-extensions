@@ -1,0 +1,10 @@
+node_modules/
+.env
+__pycache__/
+*.db
+notes.db*
+notes.db-journal
+build/
+dist/
+tmp-test/
+*.zip

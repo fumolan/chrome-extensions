@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+
+  <!-- 首次使用：设置主密码 -->
+  <section id="setupView" class="view hidden">
+    <h2>初始化密码库</h2>
+    <input type="password" id="setupPw1" placeholder="设置主密码（至少 8 位）" autocomplete="new-password">
+    <input type="password" id="setupPw2" placeholder="再次输入主密码" autocomplete="new-password" style="margin-top:8px">
+    <button id="setupBtn" class="btn primary block" style="margin-top:12px">创建密码库</button>
+    <p id="setupMsg" class="msg error hidden"></p>
+    <p class="msg dim">主密码用于加密全部数据，无法找回，请务必牢记。</p>
+  </section>
+
+  <!-- 已锁定 -->
+  <section id="lockView" class="view hidden">
+    <h2>解锁密码库</h2>
+    <input type="password" id="unlockPw" placeholder="输入主密码" autocomplete="current-password">
+    <button id="unlockBtn" class="btn primary block" style="margin-top:12px">解锁</button>
+    <p id="unlockMsg" class="msg error hidden"></p>
+  </section>
+
+  <!-- 主列表 -->
+  <section id="mainView" class="view hidden">
+    <header class="bar">
+      <input type="text" id="search" placeholder="搜索名称 / 用户名 / 网址">
+      <button id="addBtn" class="btn primary sq" title="新增条目">＋</button>
+      <button id="lockNowBtn" class="btn sq" title="立即锁定">🔒</button>
+    </header>
+    <ul id="entryList"></ul>
+    <p id="emptyHint" class="msg dim center hidden"></p>
+    <footer class="bar footer">
+      <button id="exportBtn" class="btn sm">导出备份</button>
+      <button id="importBtn" class="btn sm">导入备份</button>
+      <input type="file" id="importFile" accept=".json,application/json" class="hidden">
+      <span id="vaultCount" class="count"></span>
+    </footer>
+    <p id="mainMsg" class="msg error hidden"></p>
+  </section>
+
+  <!-- 条目详情 -->
+  <section id="detailView" class="view hidden">
+    <header class="bar">
+      <button id="dBack" class="btn sq">←</button>
+      <h2 id="dTitle" class="ellipsis"></h2>
+    </header>
+    <div class="card">
+      <div class="field-row"><label>网址</label><span class="val" id="dUrl"></span>
+        <button class="btn sm" id="dOpen">打开</button><button class="btn sm" id="dCopyUrl">复制</button></div>
+      <div class="field-row"><label>用户名</label><span class="val" id="dUser"></span>
+        <button class="btn sm" id="dCopyUser">复制</button></div>
+      <div class="field-row"><label>密码</label><span class="val mono" id="dPass"></span>
+        <button class="btn sm" id="dShow">显示</button><button class="btn sm" id="dCopyPass">复制</button></div>
+      <div class="field-row"><label>备注</label><span class="val" id="dNotes"></span></div>
+    </div>
+    <div class="bar actions">
+      <button id="fillBtn" class="btn primary">自动填充当前页</button>
+      <button id="editBtn" class="btn">编辑</button>
+      <button id="delBtn" class="btn danger">删除</button>
+    </div>
+  </section>
+
+  <!-- 新增 / 编辑 -->
+  <section id="editView" class="view hidden">
+    <header class="bar">
+      <button id="eBack" class="btn sq">←</button>
+      <h2 id="editHeading">新增条目</h2>
+    </header>
+    <label class="lbl">名称 *</label>
+    <input type="text" id="fTitle">
+    <label class="lbl">网址</label>
+    <input type="text" id="fUrl" placeholder="example.com">
+    <label class="lbl">用户名</label>
+    <input type="text" id="fUser" autocomplete="off">
+    <label class="lbl">密码</label>
+    <div class="bar" style="margin-bottom:6px">
+      <input type="password" id="fPass" autocomplete="new-password" style="flex:1">
+      <button id="fShow" class="btn">显示</button>
+      <button id="fGen" class="btn">生成</button>
+    </div>
+    <div class="bar gen-line">
+      <span class="dim">长度</span>
+      <input type="number" id="fLen" min="8" max="64" value="16">
+      <label class="chk"><input type="checkbox" id="fSym" checked>含符号</label>
+    </div>
+    <label class="lbl">备注</label>
+    <textarea id="fNotes" rows="2"></textarea>
+    <div class="bar actions">
+      <button id="saveBtn" class="btn primary">保存</button>
+    </div>
+    <p id="editMsg" class="msg error hidden"></p>
+  </section>
+
+  <script type="module" src="popup.js"></script>
+</body>
+</html>

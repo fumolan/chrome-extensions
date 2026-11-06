@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <title>JWT 解析 - 浏览器工具箱</title>
+  <link rel="stylesheet" href="../common.css">
+</head>
+<body>
+<div class="wrap">
+  <div class="topbar">
+    <a class="back" href="../../popup/popup.html">← 工具箱</a>
+    <h1>🔑 JWT 解析</h1>
+    <button id="demoBtn">填入示例</button>
+    <button id="clearBtn">清空</button>
+  </div>
+
+  <div class="card">
+    <div class="card-head">
+      <h2>Token</h2>
+      <span class="muted">粘贴后自动解析 · 仅在本地解码，不会外发</span>
+    </div>
+    <textarea id="input" placeholder="粘贴 JWT（eyJ 开头的三段式字符串），或选中网页文本后右键「工具箱：解析选中的 JWT」" spellcheck="false"></textarea>
+  </div>
+
+  <div id="status" class="status"></div>
+  <div id="result"></div>
+</div>
+<script src="../registry.js"></script>
+<script src="index.js"></script>
+</body>
+</html>

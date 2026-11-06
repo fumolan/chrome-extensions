@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>富文本笔记</title>
+  <link rel="stylesheet" href="app.css">
+</head>
+<body>
+  <div class="main" id="mainPane" data-layout="3">
+    <aside class="rail">
+      <div class="rail-logo" title="富文本笔记">📝</div>
+      <button id="railNew" class="rail-new" title="新建笔记">＋</button>
+      <button class="rail-btn rail-scope" data-scope="latest" title="最新">🕘</button>
+      <button class="rail-btn rail-scope" data-scope="pinned" title="置顶">📌</button>
+      <button id="railNav" class="rail-btn" title="项目目录（三栏 / 两栏切换）">📁</button>
+      <button class="rail-btn layout-btn" data-layout="3" title="三栏视图（目录 + 列表 + 编辑器）"><span class="bars"><i></i><i></i><i></i></span></button>
+      <button class="rail-btn layout-btn" data-layout="2" title="两栏视图（列表 + 编辑器）"><span class="bars"><i></i><i></i></span></button>
+      <button class="rail-btn layout-btn" data-layout="1" title="一栏视图（仅编辑器）"><span class="bars"><i></i></span></button>
+      <button id="btnSettings" class="rail-btn rail-settings" title="存储设置">⚙</button>
+    </aside>
+    <div id="sidebarWrap" class="sidebar-wrap">
+      <aside class="nav-col">
+        <button id="btnNewSide" class="btn primary new-btn" title="新建笔记">＋ 新建笔记</button>
+        <nav id="navTree" class="nav-tree"></nav>
+      </aside>
+      <aside class="list-col">
+        <div class="list-search">
+          <span class="search-ico">🔍</span>
+          <input id="searchInput" type="search" placeholder="搜索笔记 Ctrl+Shift+F">
+        </div>
+        <div id="noteList" class="note-list"></div>
+        <div id="listFooter" class="list-footer">总共 0 项</div>
+      </aside>
+    </div>
+
+    <section class="editor-pane">
+      <div id="toolbar" class="toolbar">
+        <button data-cmd="undo" title="撤销">↺</button>
+        <button data-cmd="redo" title="重做">↻</button>
+        <span class="sep"></span>
+        <select id="blockSelect" title="段落格式">
+          <option value="p">正文</option>
+          <option value="h1">标题 1</option>
+          <option value="h2">标题 2</option>
+          <option value="h3">标题 3</option>
+          <option value="blockquote">引用</option>
+          <option value="pre">代码块</option>
+        </select>
+        <span class="sep"></span>
+        <button data-cmd="bold" title="加粗 (Ctrl+B)"><b>B</b></button>
+        <button data-cmd="italic" title="斜体 (Ctrl+I)"><i>I</i></button>
+        <button data-cmd="underline" title="下划线 (Ctrl+U)"><u>U</u></button>
+        <button data-cmd="strikeThrough" title="删除线"><s>S</s></button>
+        <span class="sep"></span>
+        <button data-cmd="insertUnorderedList" title="无序列表">•─ 列表</button>
+        <button data-cmd="insertOrderedList" title="有序列表">1. 列表</button>
+        <span class="sep"></span>
+        <label class="color-label" title="文字颜色"><span class="a">A</span><input type="color" id="foreColor" value="#e53935"></label>
+        <label class="color-label" title="背景高亮"><span class="hl">🖍</span><input type="color" id="hiliteColor" value="#fff176"></label>
+        <span class="sep"></span>
+        <button data-cmd="createLink" title="插入链接">🔗 链接</button>
+        <button data-cmd="unlink" title="取消链接">断开</button>
+        <button id="btnImage" title="插入图片">🖼 图片</button>
+        <button id="btnAttach" title="添加附件（也可直接粘贴或拖入文件）">📎 附件</button>
+        <input type="file" id="imageInput" accept="image/*" hidden>
+        <input type="file" id="attachInput" multiple hidden>
+        <span class="sep"></span>
+        <button data-cmd="insertHorizontalRule" title="分隔线">─ 分隔</button>
+        <button data-cmd="removeFormat" title="清除格式">✕ 格式</button>
+        <span class="toolbar-meta">
+          <span class="sep"></span>
+          <select id="projectSelect" class="meta-select" title="所属项目"></select>
+          <select id="groupSelect" class="meta-select" title="项目内分组"></select>
+          <button id="btnPin" class="pin-btn" type="button" title="置顶到列表最上方">📌</button>
+        </span>
+      </div>
+      <div id="editor" class="editor" contenteditable="true"
+           data-placeholder="输入标题，回车换行写正文…支持图片、列表、链接等富文本格式；可直接粘贴或拖入文件"></div>
+      <div id="attachBar" class="attach-bar" hidden>
+        <div class="attach-head">📎 附件 <span id="attachCount"></span><span class="attach-hint">（点击文件名可下载）</span></div>
+        <div id="attachList" class="attach-list"></div>
+      </div>
+      <footer class="editor-footer">
+        <span id="statusText" class="status">新笔记（未保存）</span>
+        <span id="wordCount"></span>
+        <div class="footer-actions">
+          <div class="export-wrap">
+            <button id="btnExport" class="btn ghost" title="导出笔记">导出 ▾</button>
+            <div id="exportMenu" class="export-menu">
+              <button type="button" data-format="html">HTML 文件 (.html)</button>
+              <button type="button" data-format="md">Markdown (.md)</button>
+              <button type="button" data-format="pdf">PDF（打印保存）</button>
+            </div>
+          </div>
+          <button id="btnDelete" class="btn ghost danger icon-btn" title="删除笔记">🗑</button>
+          <button id="btnSave" class="btn primary" title="保存（Ctrl+S）">保存</button>
+        </div>
+      </footer>
+    </section>
+  </div>
+
+  <dialog id="settingsDialog">
+    <div class="settings">
+      <h3>⚙ 存储设置</h3>
+      <label><input type="radio" name="mode" value="local" checked> 本地数据库（IndexedDB，无需服务器，开箱即用）</label>
+      <label><input type="radio" name="mode" value="remote"> REST 服务器（连接 server/ 目录下的 Node.js + SQLite 服务）</label>
+      <div id="serverRow">
+        <input id="serverUrl" type="text" placeholder="http://localhost:3001" spellcheck="false">
+        <button id="btnTestServer" type="button" class="btn ghost">测试连接</button>
+      </div>
+      <div class="migrate-row">
+        <button id="btnMigrate" type="button" class="btn ghost">⬆ 上传本地笔记到服务器</button>
+        <span class="hint-inline">把本地 IndexedDB 中的全部笔记上传到该服务器（同 ID 笔记会被本地版本覆盖）</span>
+      </div>
+      <p class="hint">当前版本：<span id="dlgVersion"></span>（更新日志见项目 CHANGELOG.md）</p>
+      <p class="hint">服务器启动方式见项目 README：server 目录下运行 node server.js（需 Node.js 22.5+；SQLite 零依赖，PostgreSQL/MySQL 见 README 多数据库配置）。</p>
+      <div class="dialog-actions">
+        <button id="btnCancelSettings" type="button" class="btn ghost">取消</button>
+        <button id="btnApplySettings" type="button" class="btn primary">保存设置</button>
+      </div>
+    </div>
+  </dialog>
+
+  <div id="toast"></div>
+
+  <script src="db.js"></script>
+  <script src="storage.js"></script>
+  <script src="md.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

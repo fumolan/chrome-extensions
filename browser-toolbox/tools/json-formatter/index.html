@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <title>JSON 格式化 - 浏览器工具箱</title>
+  <link rel="stylesheet" href="../common.css">
+</head>
+<body>
+<div class="wrap">
+  <div class="topbar">
+    <a class="back" href="../../popup/popup.html">← 工具箱</a>
+    <h1>{ } JSON 格式化</h1>
+    <button id="demoBtn">填入示例</button>
+    <button id="clearBtn">清空</button>
+  </div>
+
+  <div class="card">
+    <div class="card-head">
+      <h2>输入</h2>
+      <span class="muted">粘贴后自动格式化 · 仅在本地处理，不会外发</span>
+    </div>
+    <textarea id="input" placeholder="粘贴 JSON，允许夹杂说明文字（自动截取 {…} 或 […] 片段）；也可选中网页文本后右键「工具箱：格式化选中的 JSON」" spellcheck="false"></textarea>
+    <div class="opts">
+      <label>缩进
+        <select id="indent">
+          <option value="2">2 空格</option>
+          <option value="4">4 空格</option>
+          <option value="tab">Tab</option>
+          <option value="0">压缩为单行</option>
+        </select>
+      </label>
+      <label>视图
+        <select id="viewMode">
+          <option value="tree">树形折叠</option>
+          <option value="text">纯文本</option>
+        </select>
+      </label>
+      <label><input type="checkbox" id="sortKeys"> 按键名排序</label>
+    </div>
+  </div>
+
+  <div id="status" class="status"></div>
+
+  <div class="card" id="errCard" hidden>
+    <div class="card-head">
+      <h2>解析失败</h2>
+      <span id="errMsg" class="muted"></span>
+    </div>
+    <pre class="errpos" id="errPos"></pre>
+    <ul class="hints" id="errHints"></ul>
+    <div class="muted" id="errEmpty" hidden>未识别出典型格式问题，可检查括号是否配对、引号是否闭合。</div>
+  </div>
+
+  <div class="card" id="outCard" hidden>
+    <div class="card-head">
+      <h2>结果</h2>
+      <span id="meta" class="muted"></span>
+      <button id="expandAllBtn" class="btn-sm" hidden>展开全部</button>
+      <button id="collapseAllBtn" class="btn-sm" hidden>折叠全部</button>
+      <button id="copyBtn">复制</button>
+    </div>
+    <pre class="json" id="output" hidden></pre>
+    <div class="tree" id="tree" hidden></div>
+  </div>
+</div>
+<script src="../registry.js"></script>
+<script src="index.js"></script>
+</body>
+</html>

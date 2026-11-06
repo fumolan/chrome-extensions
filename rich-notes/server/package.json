@@ -1,0 +1,17 @@
+{
+  "name": "rich-notes-server",
+  "version": "1.4.0",
+  "private": true,
+  "description": "富文本笔记浏览器扩展的后端存储服务（SQLite 零依赖；PostgreSQL/MySQL 需 npm install 对应驱动）",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "optionalDependencies": {
+    "pg": "^8.12.0",
+    "mysql2": "^3.11.0"
+  },
+  "engines": {
+    "node": ">=22.5.0"
+  }
+}
