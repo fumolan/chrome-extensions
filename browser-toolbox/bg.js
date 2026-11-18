@@ -9,6 +9,11 @@ const MENUS = {
     title: '工具箱：格式化选中的 JSON',
     storageKey: 'jsonSelection',
     path: 'tools/json-formatter/index.html'
+  },
+  'toolbox-qr-menu': {
+    title: '工具箱：生成选中文字的二维码',
+    storageKey: 'qrSelection',
+    path: 'tools/qrcode/index.html'
   }
 };
 

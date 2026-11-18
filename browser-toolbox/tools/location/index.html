@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <title>位置 / GPS - 浏览器工具箱</title>
+  <link rel="stylesheet" href="../common.css">
+  <style>
+    /* ===== 任务页签 ===== */
+    .view-tabs {
+      display: flex;
+      gap: 4px;
+      margin-bottom: 14px;
+      border-bottom: 1px solid var(--line);
+    }
+    .view-tabs button {
+      font: inherit;
+      font-size: 13px;
+      padding: 8px 16px 7px;
+      border: none;
+      background: none;
+      color: var(--muted);
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+    }
+    .view-tabs button:hover { color: var(--fg); }
+    .view-tabs button.active {
+      color: var(--accent);
+      border-bottom-color: var(--accent);
+      font-weight: 600;
+    }
+    section.view[hidden] { display: none; }
+
+    /* ===== 顶栏 Key 徽章 + 设置面板 ===== */
+    .topbar { flex-wrap: wrap; }
+    .key-badge {
+      font: inherit;
+      font-size: 12px;
+      padding: 4px 12px;
+      border-radius: 999px;
+      cursor: pointer;
+      margin-left: auto;
+      white-space: nowrap;
+    }
+    .key-badge.ok { background: color-mix(in srgb, var(--ok) 14%, transparent); color: var(--ok); border-color: transparent; }
+    .key-badge.unset { background: color-mix(in srgb, var(--danger) 12%, transparent); color: var(--danger); border-color: transparent; }
+    #keyPanel {
+      position: relative;
+      z-index: 20;
+      margin-bottom: 14px;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+    }
+    #keyPanel[hidden] { display: none; }
+
+    /* ===== 搜索框 + 候选下拉浮层 ===== */
+    .search-field { position: relative; }
+    .search-field input { width: 100%; }
+    .search-drop {
+      position: absolute;
+      top: calc(100% + 4px);
+      left: 0;
+      right: 0;
+      z-index: 30;
+      display: none;
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.16);
+      padding: 6px;
+      max-height: 260px;
+      overflow: auto;
+    }
+    .search-drop.open { display: flex; flex-direction: column; gap: 4px; }
+    .search-drop .kind-tag { color: var(--accent); margin-right: 6px; font-weight: 600; }
+    .search-drop .relaxed-note { color: var(--muted); font-size: 12px; padding: 2px 8px; }
+    .search-drop > button {
+      border: none;
+      background: none;
+      color: var(--fg);
+      font-size: 13px;
+      padding: 6px 8px;
+      cursor: pointer;
+      text-align: left;
+      border-radius: 6px;
+    }
+    .search-drop > button:hover { background: color-mix(in srgb, var(--accent) 12%, transparent); color: var(--accent); }
+    .side-chip.unset { background: transparent; color: var(--danger); }
+
+    /* ===== 行程构建器（时间线）===== */
+    .pt-row { display: flex; gap: 10px; }
+    .pt-rail { display: flex; flex-direction: column; align-items: center; width: 16px; flex-shrink: 0; }
+    .pt-dot {
+      width: 10px; height: 10px; border-radius: 50%;
+      background: var(--accent); flex-shrink: 0; margin-top: 7px;
+    }
+    .pt-dot.start { background: var(--ok); }
+    .pt-dot.end { background: var(--danger); }
+    .pt-rail::after { content: ''; flex: 1; width: 2px; background: var(--line); margin-top: 4px; }
+    .pt-row:last-of-type .pt-rail::after { display: none; }
+    .pt-main { flex: 1; min-width: 0; padding-bottom: 10px; }
+    .pt-label { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--muted); margin-bottom: 4px; }
+    .pt-label .pt-name { font-weight: 600; color: var(--fg); font-size: 13px; }
+    .stop-ops { display: flex; gap: 4px; margin-left: auto; }
+    .addstop-row { display: flex; align-items: center; gap: 10px; padding: 2px 0 10px 26px; }
+
+    /* ===== 出行规划两栏 ===== */
+    .plan-grid { display: grid; grid-template-columns: 400px minmax(0, 1fr); gap: 14px; align-items: start; }
+    @media (max-width: 959px) { .plan-grid { grid-template-columns: 1fr; } }
+    .plan-divider { border-top: 1px dashed var(--line); margin: 12px 0; }
+
+    /* ===== 页签结果条 ===== */
+    .route-tabs { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-bottom: 10px; }
+    .route-tabs button {
+      font: inherit; font-size: 12px; padding: 4px 12px;
+      border: 1px solid var(--line); border-radius: 999px;
+      background: var(--card); color: var(--fg); cursor: pointer;
+    }
+    .route-tabs button:hover { border-color: var(--accent); }
+    .route-tabs button.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+    .route-tabs .leg-fail { color: var(--danger); }
+    .route-tabs .leg-total { margin-left: auto; color: var(--muted); font-size: 12px; }
+    .leg-head { font-size: 13px; font-weight: 600; margin-bottom: 6px; }
+    .route-err {
+      background: color-mix(in srgb, var(--danger) 12%, transparent);
+      color: var(--danger);
+      padding: 8px 12px;
+      border-radius: 8px;
+      font-size: 13px;
+    }
+
+    /* ===== 地图链接 / 收件地址沿用 ===== */
+    .maps { display: flex; flex-wrap: wrap; gap: 8px; }
+    .maps a {
+      display: inline-block;
+      padding: 5px 12px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      color: var(--accent);
+      text-decoration: none;
+      font-size: 13px;
+    }
+    .maps a:hover { border-color: var(--accent); }
+    input[type="text"], input[type="password"] {
+      font: inherit;
+      padding: 5px 8px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: var(--bg);
+      color: var(--fg);
+    }
+    input[type="text"]:focus, input[type="password"]:focus { outline: none; border-color: var(--accent); }
+    .keyrow { display: flex; gap: 8px; align-items: center; }
+    .keyrow input { flex: 1; min-width: 0; }
+    .frm { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 10px; margin-top: 10px; }
+    .frm label { display: flex; flex-direction: column; gap: 3px; font-size: 12px; color: var(--muted); }
+    .frm .full { grid-column: 1 / -1; }
+    .preview-row { margin-top: 10px; font-size: 13px; display: flex; gap: 8px; align-items: center; }
+    .preview-row .v { flex: 1; word-break: break-all; font-family: Consolas, monospace; }
+    .saved-row { border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; margin-bottom: 8px; font-size: 13px; }
+    .saved-main { display: flex; gap: 6px; align-items: flex-start; word-break: break-all; }
+    .saved-ops { margin-top: 6px; display: flex; gap: 8px; }
+    .kv button { margin-left: auto; }
+    .side-head { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; margin-bottom: 4px; }
+    .side-chip {
+      font-weight: 400; font-size: 12px; color: var(--chip-fg);
+      background: var(--chip-bg); border-radius: 999px; padding: 2px 10px;
+      word-break: break-all; min-width: 0;
+    }
+    ol.steps { margin: 8px 0 0; padding-left: 22px; font-size: 13px; }
+    ol.steps li { margin: 4px 0; }
+    details summary { cursor: pointer; margin-top: 8px; font-size: 13px; }
+    .saved-row ol.steps { margin-top: 4px; }
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <div class="topbar">
+    <a class="back" href="../../popup/popup.html">← 工具箱</a>
+    <h1>📍 位置助手</h1>
+    <span class="ver-tag" id="verTag"></span>
+    <button id="keyBadge" class="key-badge unset">Key 未配置</button>
+  </div>
+
+  <!-- Key 设置面板（顶栏徽章开合，三个视图共用） -->
+  <div id="keyPanel" class="card" hidden>
+    <div class="card-head">
+      <h2>高德「Web服务」Key</h2>
+      <span class="muted">定位换地址、地址搜索、路径规划共用 · 仅存本机</span>
+    </div>
+    <div class="keyrow">
+      <input type="password" id="keyInput" autocomplete="off" placeholder="免费，仅存本机，密文显示且禁止复制">
+      <button id="saveKeyBtn">保存 Key</button>
+      <a class="muted" href="https://lbs.amap.com/api/webservice/gettingstarted" target="_blank" rel="noreferrer">如何获取？</a>
+    </div>
+    <div id="keyHint" class="muted" style="margin-top:6px"></div>
+  </div>
+
+  <div id="status" class="status"></div>
+
+  <div class="view-tabs">
+    <button data-view="locate" class="active">📍 定位</button>
+    <button data-view="address">🏠 收件地址</button>
+    <button data-view="plan">🚗 出行规划</button>
+  </div>
+
+  <!-- ===== 视图 1：定位 ===== -->
+  <section class="view" id="view-locate">
+    <div class="card">
+      <div class="card-head">
+        <h2>获取当前位置</h2>
+        <label class="muted" style="white-space:nowrap"><input type="checkbox" id="highAcc" checked> 高精度</label>
+        <button id="locBtn" class="primary">获取当前位置</button>
+      </div>
+      <div class="muted">台式机/笔记本通常没有 GPS 芯片，浏览器用 Wi-Fi / IP 估算位置，精度几十米到数公里；带 GPS 的设备精度更高。</div>
+    </div>
+    <div id="result"></div>
+    <ul class="hints muted">
+      <li>坐标系：GPS 芯片原始输出 WGS-84；中国大陆的 Wi-Fi/IP 定位结果常按 GCJ-02（火星坐标）给出。高德/腾讯地图用 GCJ-02，百度地图用 BD-09，Google/OSM 用 WGS-84。若高德链接偏差约 500 米，把「定位结果按」切到 GCJ-02 即可。</li>
+      <li>坐标换算全部在本地完成；地图/导航链接在你点击时才于新标签页打开。</li>
+    </ul>
+  </section>
+
+  <!-- ===== 视图 2：收件地址 ===== -->
+  <section class="view" id="view-address" hidden>
+    <div class="card">
+      <div class="card-head">
+        <h2>外卖 / 收件地址</h2>
+        <span class="muted">楼层门牌 GPS 测不到，需人工确认</span>
+      </div>
+      <div style="margin-bottom:10px">
+        <button id="regeoBtn">查询附近地址</button>
+        <span class="muted" style="margin-left:8px">定位后把坐标换回标准地址与门牌号，也可作起点/终点</span>
+      </div>
+      <div id="regeoBox">
+        <div class="muted">先到「📍 定位」页获取当前位置，再回来点「查询附近地址」；配置 Key 后定位成功也会自动查询。</div>
+      </div>
+
+      <div class="frm">
+        <label>标签<input type="text" id="daLabel" placeholder="家 / 公司 / 宿舍"></label>
+        <label>楼栋 / 单元<input type="text" id="daBuilding" placeholder="如：3栋2单元 或 A座"></label>
+        <label class="full">地址<input type="text" id="daAddr" placeholder="区/街道/小区大厦门牌，点上方候选自动填入"></label>
+        <label>楼层<input type="text" id="daFloor" placeholder="如：18（GPS 测不到，请人工填写）"></label>
+        <label>房间号<input type="text" id="daRoom" placeholder="如：1802"></label>
+        <label class="full">备注<input type="text" id="daNote" placeholder="如：放门口外卖柜 / 到了打电话"></label>
+      </div>
+
+      <div class="preview-row">
+        生成地址：
+        <span id="addrPreview" class="v"></span>
+        <button id="copyPreviewBtn" class="btn-sm">复制</button>
+      </div>
+
+      <div style="margin-top:8px; display:flex; gap:8px;">
+        <button id="saveAddrBtn" class="primary">保存地址</button>
+        <button id="cancelEditBtn" hidden>取消编辑</button>
+      </div>
+
+      <div id="savedBox" style="margin-top:10px"></div>
+    </div>
+  </section>
+
+  <!-- ===== 视图 3：出行规划 ===== -->
+  <section class="view" id="view-plan" hidden>
+    <div class="plan-grid">
+      <div class="card">
+        <div class="card-head">
+          <h2>行程</h2>
+          <span class="muted">按顺序连接，每程一个页签</span>
+        </div>
+
+        <div class="pt-row">
+          <div class="pt-rail"><span class="pt-dot start"></span></div>
+          <div class="pt-main">
+            <div class="pt-label"><span class="pt-name">起点</span>
+              <button id="originCurBtn" class="btn-sm">用当前定位</button>
+              <span id="originChip" class="side-chip" hidden></span>
+            </div>
+            <div class="search-field">
+              <input type="text" id="originInput" placeholder="支持地名 / 地铁站出口 / 标准地址">
+              <div id="originCand" class="search-drop"></div>
+            </div>
+          </div>
+        </div>
+
+        <div id="stopsBox"></div>
+        <div class="addstop-row">
+          <button id="addStopBtn" class="btn-sm">＋ 添加途经点</button>
+        </div>
+
+        <div class="pt-row">
+          <div class="pt-rail"><span class="pt-dot end"></span></div>
+          <div class="pt-main">
+            <div class="pt-label"><span class="pt-name">终点</span>
+              <span id="destChip" class="side-chip" hidden></span>
+            </div>
+            <div class="search-field">
+              <input type="text" id="destInput" placeholder="支持地名 / 地铁站出口 / 标准地址">
+              <div id="destCand" class="search-drop"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="plan-divider"></div>
+        <div class="opts">
+          <label>城市（可选）
+            <input type="text" id="routeCity" placeholder="如：上海" style="width:80px">
+          </label>
+          <label>出行方式
+            <select id="routeMode">
+              <option value="driving">驾车</option>
+              <option value="transit">公交</option>
+              <option value="walking">步行</option>
+              <option value="bicycling">骑行</option>
+            </select>
+          </label>
+          <button id="routeBtn" class="primary">查询路径</button>
+        </div>
+      </div>
+
+      <div>
+        <div id="routeTabs" class="route-tabs" hidden></div>
+        <div id="routeBox" class="card" style="min-height:120px">
+          <div class="muted">设好起点、终点（可加途经点）后点「查询路径」；多途经点时每程一个页签，页签栏显示全程累计。</div>
+        </div>
+      </div>
+    </div>
+    <ul class="hints muted" style="margin-top:14px">
+      <li>联网说明（共用同一个 Key，均只发往 restapi.amap.com）：①「收件地址」把当前坐标发给逆地理接口换标准地址；②「出行规划」把输入的地址文本发给地理编码/POI 接口、把起终点坐标发给路径接口。楼层/房间号任何接口都没有，只能人工填写。</li>
+      <li>「地铁站2号口」这类输入：POI 库多不收录出入口，搜不到时会自动去掉「N号口」→「地铁站」逐级放宽重搜，并在候选上方提示。</li>
+    </ul>
+  </section>
+</div>
+<script src="../diag.js"></script>
+<script src="../registry.js"></script>
+<script src="index.js"></script>
+</body>
+</html>

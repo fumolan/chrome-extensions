@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <title>微积分计算器 - 浏览器工具箱</title>
+  <link rel="stylesheet" href="../common.css">
+  <style>
+    .flow-head { display: flex; align-items: center; gap: 8px; margin: 18px 0 8px; }
+    .flow-no {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 22px; height: 22px; border-radius: 50%;
+      background: var(--accent); color: #fff;
+      font: 600 13px/1 Consolas, monospace; flex-shrink: 0;
+    }
+    .flow-head h2 { margin: 0; font-size: 15px; }
+    .draft-tag { font-size: 11px; color: var(--muted); font-family: Consolas, monospace; margin-left: auto; white-space: nowrap; }
+    .op-seg { display: flex; flex-wrap: wrap; gap: 8px; }
+    .op-seg button {
+      font: inherit; font-size: 14px; padding: 8px 16px;
+      border: 1px solid var(--line); border-radius: 8px;
+      background: var(--card); color: var(--fg); cursor: pointer;
+    }
+    .op-seg button:hover { border-color: var(--accent); }
+    .op-seg button.active { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600; }
+    .param-row { display: flex; align-items: center; flex-wrap: wrap; gap: 14px; margin-top: 10px; }
+    .param-row label { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--muted); }
+    .param-row input, .param-row select {
+      font: inherit; padding: 4px 8px; width: 80px;
+      border: 1px solid var(--line); border-radius: 6px;
+      background: var(--bg); color: var(--fg);
+    }
+    .param-row input:focus, .param-row select:focus { outline: none; border-color: var(--accent); }
+    [hidden] { display: none !important; }  /* hidden 属性优先于 display:flex 等样式 */
+    .formula-line {
+      font: 600 16px/1.6 Consolas, monospace;
+      padding: 10px 14px;
+      background: var(--bg);
+      border-left: 3px solid var(--accent);
+      border-radius: 6px;
+      word-break: break-all;
+    }
+    .expr-out {
+      margin-top: 10px; padding: 10px 14px;
+      background: var(--bg); border-radius: 8px;
+      font: 14px/1.8 Consolas, monospace;
+      word-break: break-all; white-space: pre-wrap;
+    }
+    .scalar-out { font: 24px/1.5 Consolas, monospace; margin-top: 10px; }
+    .calc-err {
+      background: color-mix(in srgb, var(--danger) 12%, transparent);
+      color: var(--danger);
+      padding: 8px 12px; border-radius: 8px; font-size: 13px; margin-top: 10px;
+    }
+    ol.steps li { white-space: pre-wrap; font: 12.5px/1.8 Consolas, "Microsoft YaHei", monospace; }
+    details.rules { margin-top: 14px; }
+    details.rules summary { cursor: pointer; font-size: 12px; color: var(--muted); width: fit-content; }
+    details.rules summary:hover { color: var(--fg); }
+    .about-body {
+      margin-top: 8px; padding: 10px 14px;
+      border: 1px dashed var(--line); border-radius: 8px;
+      font-size: 12.5px; line-height: 1.9;
+    }
+    .about-body p { margin: 6px 0; }
+    #plot { width: 100%; height: auto; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); }
+    .tpl-row { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+    .tpl-chip {
+      border: 1px solid var(--line); border-radius: 999px;
+      background: var(--chip-bg); color: var(--chip-fg);
+      font: 12px/1.6 Consolas, monospace;
+      padding: 4px 12px; cursor: pointer;
+    }
+    .tpl-chip:hover { border-color: var(--accent); }
+    .ins-row { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 8px; align-items: center; }
+    .ins-btn {
+      font: 12px/1.4 Consolas, monospace;
+      padding: 3px 8px;
+      border: 1px solid var(--line); border-radius: 6px;
+      background: var(--card); color: var(--fg); cursor: pointer;
+      min-width: 30px;
+    }
+    .ins-btn:hover { border-color: var(--accent); color: var(--accent); }
+    .parse-preview {
+      margin-top: 8px;
+      font: 12.5px/1.6 Consolas, monospace;
+      color: var(--muted);
+      word-break: break-all;
+      min-height: 1.6em;
+    }
+    .parse-preview.err { color: var(--danger); }
+    .draft-tag { font-size: 11px; color: var(--muted); font-family: Consolas, monospace; margin-left: auto; white-space: nowrap; }
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <div class="topbar">
+    <a class="back" href="../../popup/popup.html">← 工具箱</a>
+    <h1>∫ 微积分计算器</h1>
+    <span class="ver-tag" id="verTag"></span>
+    <span class="draft-tag" id="draftTag">草稿自动保存（本机）</span>
+  </div>
+
+  <!-- ① 输入 -->
+  <div class="flow-head">
+    <span class="flow-no">①</span><h2>输入函数</h2>
+    <span class="muted">点模板生成公式 → 在框里直接改 · 支持隐式乘法（2x、3sin(x)）、pi、e · 纯本地</span>
+  </div>
+  <div class="card">
+    <div class="card-head">
+      <h2>公式模板</h2>
+      <span class="muted">点击生成一条公式，然后随意修改</span>
+    </div>
+    <div class="tpl-row" id="tplRow"></div>
+    <div class="card-head" style="margin-top:10px">
+      <h2>f(x) =</h2>
+      <input id="fx" placeholder="如：x ^ 2 * sin(x) + ln(x)" spellcheck="false" autocomplete="off">
+    </div>
+    <div class="ins-row">
+      <span class="muted">插入：</span>
+      <button class="ins-btn" data-ins="x">x</button>
+      <button class="ins-btn" data-ins=" ^ 2">^2</button>
+      <button class="ins-btn" data-ins="pi">π</button>
+      <button class="ins-btn" data-ins="(">(</button>
+      <button class="ins-btn" data-ins=")">)</button>
+      <button class="ins-btn" data-ins="sin(">sin</button>
+      <button class="ins-btn" data-ins="cos(">cos</button>
+      <button class="ins-btn" data-ins="tan(">tan</button>
+      <button class="ins-btn" data-ins="sqrt(">√</button>
+      <button class="ins-btn" data-ins="ln(">ln</button>
+      <button class="ins-btn" data-ins="exp(">exp</button>
+      <button class="ins-btn" data-ins=" * ">×</button>
+      <button class="ins-btn" data-ins=" / ">÷</button>
+    </div>
+    <div id="parsePreview" class="parse-preview"></div>
+    <div class="opts">
+      <label>绘图范围 <input id="xmin" value="-10" style="width:70px"> ~ <input id="xmax" value="10" style="width:70px"></label>
+    </div>
+  </div>
+
+  <!-- 函数图像（始终显示，随输入刷新） -->
+  <div class="card">
+    <div class="card-head">
+      <h2>函数图像</h2>
+      <span class="muted" id="plotMeta">—</span>
+    </div>
+    <canvas id="plot" width="860" height="320"></canvas>
+  </div>
+
+  <!-- ② 选操作 -->
+  <div class="flow-head">
+    <span class="flow-no">②</span><h2>选操作</h2>
+    <span class="muted" id="opHint"></span>
+  </div>
+  <div class="op-seg" id="opSeg">
+    <button data-op="d1" class="active">f′(x) 一阶导数</button>
+    <button data-op="d2">f″(x) 二阶导数</button>
+    <button data-op="integral">∫ 定积分</button>
+    <button data-op="limit">lim 极限</button>
+    <button data-op="taylor">泰勒展开</button>
+  </div>
+  <div class="param-row">
+    <label id="abRow" hidden>积分区间 a = <input id="aVal" value="0"> b = <input id="bVal" value="1"></label>
+    <label id="x0Row" hidden>趋于点 x₀ = <input id="x0Val" value="0"></label>
+    <label id="orderRow" hidden>展开阶数
+      <select id="orderVal">
+        <option value="1">1</option><option value="2">2</option><option value="3">3</option>
+        <option value="4">4</option><option value="5" selected>5</option><option value="6">6</option>
+        <option value="7">7</option><option value="8">8</option>
+      </select>
+    </label>
+  </div>
+
+  <!-- ③ 公式与结果 -->
+  <div class="flow-head">
+    <span class="flow-no">③</span><h2>公式与结果</h2>
+    <span class="muted" id="outMeta"></span>
+  </div>
+  <div class="card">
+    <div class="formula-line" id="formulaLine">输入 f(x) 后选择操作，这里显示公式与结果</div>
+    <div id="outBox"></div>
+  </div>
+  <div class="card">
+    <div class="card-head">
+      <h2>计算过程</h2>
+      <span class="muted" id="stepsMeta">—</span>
+    </div>
+    <ol class="steps" id="stepsList"></ol>
+    <details class="steps-more" id="stepsMore" hidden>
+      <summary>展开其余步骤</summary>
+      <ol class="steps" id="stepsMoreList"></ol>
+    </details>
+  </div>
+
+  <details class="rules">
+    <summary>微积分法则速查（求导法则表 · 积分/极限/泰勒，随时核对手算）</summary>
+    <div class="about-body">
+      <p><strong>求导法则</strong>：</p>
+      <p>常数 (c)′ = 0；幂 (xⁿ)′ = n·xⁿ⁻¹；和差 (u ± v)′ = u′ ± v′。<br>
+      乘积 (u·v)′ = u′·v + u·v′；商 (u/v)′ = (u′v − u·v′)/v²；链式 (f(g))′ = f′(g)·g′。</p>
+      <p>常用导数：sin→cos；cos→−sin；tan→1/cos²；ln→1/x；log₁₀→1/(x·ln10)；exp→exp；√→1/(2√)；|x|→sign(x)；sinh→cosh；cosh→sinh；tanh→1/cosh²；asin→1/√(1−x²)；acos→−1/√(1−x²)；atan→1/(1+x²)。</p>
+      <p><strong>定积分</strong>：微积分基本定理 ∫ₐᵇ f = F(b) − F(a)（F 是原函数）。本页用<b>复合辛普森法则</b>做数值积分：区间等分 n 段后每两段用抛物线逼近，逐次加倍 n 直到结果收敛，误差随 n 快速下降。面积在图像上以高亮区域显示。</p>
+      <p><strong>极限</strong>：本页从 a 的左右两侧以逐步缩小的距离逼近取值。左右极限相等 → 极限存在；同号发散 → ±∞；不等 → 不存在（跳跃点）。</p>
+      <p><strong>泰勒展开</strong>：f(x) ≈ Σₖ f⁽ᵏ⁾(x₀)/k! · (x−x₀)ᵏ。例：sin x 在 0 处五阶 = x − x³/6 + x⁵/120。</p>
+      <p class="muted">提示：「计算过程」卡会展示当前操作的具体细节（法则应用 / 收敛过程 / 逼近表 / 系数表）。</p>
+    </div>
+  </details>
+</div>
+<script src="../diag.js"></script>
+<script src="../registry.js"></script>
+<script src="index.js"></script>
+</body>
+</html>

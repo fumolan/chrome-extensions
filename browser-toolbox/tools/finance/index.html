@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <title>金融工具 - 浏览器工具箱</title>
+  <link rel="stylesheet" href="../common.css">
+  <style>
+    .view-tabs { display: flex; gap: 4px; margin-bottom: 14px; border-bottom: 1px solid var(--line); }
+    .view-tabs button {
+      font: inherit; font-size: 13px; padding: 8px 16px 7px;
+      border: none; background: none; color: var(--muted); cursor: pointer;
+      border-bottom: 2px solid transparent;
+    }
+    .view-tabs button:hover { color: var(--fg); }
+    .view-tabs button.active { color: var(--accent); border-bottom-color: var(--accent); font-weight: 600; }
+    section.view[hidden] { display: none; }
+
+    .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+    .chips button {
+      font: inherit; font-size: 12px; padding: 4px 12px;
+      border: 1px solid var(--line); border-radius: 999px;
+      background: var(--card); color: var(--fg); cursor: pointer;
+    }
+    .chips button:hover { border-color: var(--accent); }
+    .chips button.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+
+    .term-card { border: 1px solid var(--line); border-radius: 10px; padding: 10px 14px; margin-bottom: 10px; }
+    .term-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .term-name { font-weight: 600; font-size: 14px; }
+    .term-en { color: var(--muted); font-size: 12px; font-family: Consolas, monospace; }
+    .term-cat { margin-left: auto; font-size: 11px; color: var(--chip-fg); background: var(--chip-bg); padding: 2px 10px; border-radius: 999px; }
+    .term-def { margin-top: 6px; font-size: 13px; }
+    .term-formula { margin-top: 4px; font: 12.5px/1.7 Consolas, monospace; color: var(--accent); word-break: break-all; }
+    .term-example { margin-top: 4px; font-size: 12.5px; color: var(--muted); }
+    .quiz .term-def, .quiz .term-formula, .quiz .term-example { display: none; }
+    .quiz .term-card.revealed .term-def, .quiz .term-card.revealed .term-formula, .quiz .term-card.revealed .term-example { display: block; }
+    .quiz .term-card { cursor: pointer; }
+    .quiz-hint { font-size: 12px; color: var(--muted); margin: 6px 0 10px; }
+
+    .op-seg { display: flex; flex-wrap: wrap; gap: 8px; }
+    .op-seg button {
+      font: inherit; font-size: 13px; padding: 8px 14px;
+      border: 1px solid var(--line); border-radius: 8px;
+      background: var(--card); color: var(--fg); cursor: pointer;
+    }
+    .op-seg button:hover { border-color: var(--accent); }
+    .op-seg button.active { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600; }
+    .frm { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 12px; margin-top: 12px; }
+    .frm label { display: flex; flex-direction: column; gap: 3px; font-size: 12px; color: var(--muted); }
+    .frm input {
+      font: 13px/1.4 Consolas, monospace;
+      padding: 6px 8px; border: 1px solid var(--line); border-radius: 6px;
+      background: var(--bg); color: var(--fg);
+    }
+    .frm input:focus { outline: none; border-color: var(--accent); }
+    .formula-line {
+      font: 600 15px/1.6 Consolas, monospace;
+      padding: 10px 14px; margin-top: 12px;
+      background: var(--bg); border-left: 3px solid var(--accent);
+      border-radius: 6px; word-break: break-all;
+    }
+    .result-big { font: 600 24px/1.5 Consolas, monospace; margin-top: 10px; color: var(--accent); }
+    .result-sub { font-size: 12.5px; color: var(--muted); margin-top: 4px; }
+    .mat-err {
+      background: color-mix(in srgb, var(--danger) 12%, transparent);
+      color: var(--danger); padding: 8px 12px; border-radius: 8px; font-size: 13px; margin-top: 10px;
+    }
+    .know-card { border: 1px solid var(--line); border-radius: 10px; padding: 10px 14px; margin-bottom: 10px; }
+    .know-card h3 { margin: 0 0 6px; font-size: 14px; }
+    .know-card p { margin: 0; font-size: 13px; line-height: 1.8; color: var(--fg); }
+    .draft-tag { font-size: 11px; color: var(--muted); font-family: Consolas, monospace; }
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <div class="topbar">
+    <a class="back" href="../../popup/popup.html">← 工具箱</a>
+    <h1>💰 金融工具</h1>
+    <span class="ver-tag" id="verTag"></span>
+  </div>
+
+  <div id="status"></div>
+
+  <div class="view-tabs">
+    <button data-view="terms" class="active">📖 术语学习</button>
+    <button data-view="calc">🧮 金融计算</button>
+    <button data-view="know">💡 金融常识</button>
+  </div>
+
+  <!-- 术语学习 -->
+  <section class="view" id="view-terms">
+    <div class="card">
+      <div class="card-head">
+        <h2>金融术语</h2>
+        <span class="muted">输入关键词搜索，点分类筛选；勾选「抽查模式」先看术语再点卡看答案</span>
+      </div>
+      <input type="text" id="termSearch" placeholder="搜索术语 / 英文 / 解释，如：夏普、PE、回撤" style="width:100%">
+      <div class="chips" id="catChips"></div>
+    </div>
+    <div class="quiz-hint" id="quizHint" hidden>抽查模式：只显示术语名，点击卡片展开解释，先自测再看答案。</div>
+    <div id="termGrid"></div>
+  </section>
+
+  <!-- 金融计算 -->
+  <section class="view" id="view-calc" hidden>
+    <div class="card">
+      <div class="card-head">
+        <h2>选计算器</h2>
+        <span class="muted" id="calcHint"></span>
+        <span class="draft-tag" id="calcDraftTag">输入自动保存（本机）</span>
+      </div>
+      <div class="op-seg" id="calcSeg"></div>
+      <div class="frm" id="calcInputs"></div>
+    </div>
+    <div class="card">
+      <div class="card-head">
+        <h2>公式与结果</h2>
+        <span class="muted" id="calcMeta"></span>
+        <button id="copyResultBtn" class="btn-sm">复制结果</button>
+      </div>
+      <div class="formula-line" id="formulaLine">在上方选一个计算器并填入数字</div>
+      <div id="calcOut"></div>
+      <div style="margin-top:12px">
+        <div class="muted" style="margin-bottom:6px">计算过程</div>
+        <ol class="steps" id="calcSteps"></ol>
+      </div>
+    </div>
+  </section>
+
+  <!-- 金融常识 -->
+  <section class="view" id="view-know" hidden>
+    <div class="card">
+      <div class="card-head">
+        <h2>金融常识</h2>
+        <span class="muted">先想亏多少，再想赚多少</span>
+      </div>
+      <div id="knowList"></div>
+    </div>
+  </section>
+</div>
+<script src="../diag.js"></script>
+<script src="../registry.js"></script>
+<script src="data.js"></script>
+<script src="index.js"></script>
+</body>
+</html>

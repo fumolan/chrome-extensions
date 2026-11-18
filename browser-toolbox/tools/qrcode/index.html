@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <title>二维码生成 - 浏览器工具箱</title>
+  <link rel="stylesheet" href="../common.css">
+  <style>
+    .qr-wrap { display: flex; gap: 20px; align-items: flex-start; flex-wrap: wrap; }
+    .qr-card {
+      background: #ffffff;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 16px;
+      flex-shrink: 0;
+      line-height: 0;
+    }
+    .qr-card svg { display: block; }
+    .qr-side { flex: 1; min-width: 220px; }
+    .qr-meta { font: 12px/1.7 Consolas, monospace; color: var(--muted); }
+    .qr-btns { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+    .hist-chip {
+      border: none;
+      background: var(--chip-bg);
+      color: var(--chip-fg);
+      font: 12px/1.6 Consolas, monospace;
+      padding: 4px 12px;
+      border-radius: 999px;
+      cursor: pointer;
+      text-align: left;
+      max-width: 100%;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .hist-chip:hover { background: color-mix(in srgb, var(--accent) 18%, transparent); }
+    #historyBox { display: flex; flex-direction: column; gap: 6px; align-items: flex-start; }
+
+    /* 不引人注意的「关于二维码」折叠小节 */
+    details.about-qr { margin-top: 14px; }
+    details.about-qr summary {
+      cursor: pointer;
+      font-size: 12px;
+      color: var(--muted);
+      width: fit-content;
+    }
+    details.about-qr summary:hover { color: var(--fg); }
+    .about-body {
+      margin-top: 8px;
+      padding: 10px 14px;
+      border: 1px dashed var(--line);
+      border-radius: 8px;
+      font-size: 12.5px;
+      line-height: 1.9;
+      color: var(--fg);
+    }
+    .about-body p { margin: 6px 0; }
+    .about-body a { color: var(--accent); }
+    .mono { font-family: Consolas, monospace; }
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <div class="topbar">
+    <a class="back" href="../../popup/popup.html">← 工具箱</a>
+    <h1>▦ 二维码生成</h1>
+    <span class="ver-tag" id="verTag"></span>
+  </div>
+
+  <div class="card">
+    <div class="card-head">
+      <h2>网址 / 文本</h2>
+      <span class="muted">输入后自动生成 · 纯本地编码，不上传</span>
+    </div>
+    <textarea id="input" placeholder="粘贴网址或任意文本，如：https://github.com/fumolan（也可选中网页文字后右键「工具箱：生成二维码」）" spellcheck="false"></textarea>
+    <div class="opts">
+      <label>纠错级别
+        <select id="ecc">
+          <option value="L">L（7% 容错 · 容量最大）</option>
+          <option value="M" selected>M（15% 容错 · 推荐）</option>
+          <option value="Q">Q（25% 容错）</option>
+          <option value="H">H（30% 容错 · 可加 logo）</option>
+        </select>
+      </label>
+      <span class="muted">网址越长二维码越密，扫码距离要相应更近</span>
+    </div>
+  </div>
+
+  <div id="status" class="status"></div>
+
+  <div class="card" id="outCard" hidden>
+    <div class="card-head">
+      <h2>二维码</h2>
+      <span class="qr-meta" id="meta"></span>
+    </div>
+    <div class="qr-wrap">
+      <div class="qr-card" id="qrCard"></div>
+      <div class="qr-side">
+        <div class="muted">白底黑码 + 四模块留白，深色模式下也保持白底，确保扫码成功率。</div>
+        <div class="qr-btns">
+          <button id="downloadPngBtn" class="primary">下载 PNG</button>
+          <button id="copyImgBtn">复制图片</button>
+          <button id="copyTextBtn">复制文本</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-head">
+      <h2>最近生成</h2>
+      <span class="muted">本机保存最近 8 条，点击回填</span>
+    </div>
+    <div id="historyBox"></div>
+  </div>
+
+  <details class="about-qr">
+    <summary>关于二维码：技术原理 · 作者 · 本页编码过程（感兴趣再展开）</summary>
+    <div class="about-body">
+      <p><strong>技术来源</strong>：QR 码（Quick Response Code）是日本 Denso Wave（电装公司）工程师<strong>原昌宏（Masahiro Hara）</strong>团队 1994 年为追踪汽车零部件发明的矩阵式二维条码。Denso Wave 持有「QR Code」商标，但明确开放了专利实施权，所以任何人都能自由生成使用；官方科普站 <a href="https://www.qrcode.com/" target="_blank" rel="noreferrer">qrcode.com</a>。</p>
+      <p><strong>本页用的编码库</strong>：<a href="https://github.com/kazuhikoarase/qrcode-generator" target="_blank" rel="noreferrer">qrcode-generator</a>，作者 Kazuhiko Arase，MIT 协议，全部编码在本页本地完成、不联网。</p>
+      <p><strong>一次二维码编码的思想</strong>（随你的输入实时更新）：</p>
+      <ol class="steps">
+        <li><strong>选模式</strong>：QR 有数字/字母/8 位字节/汉字等多种压缩模式，本页统一用 <b>Byte + UTF-8</b>（中文先转成 2–3 字节的 UTF-8 序列再编）。</li>
+        <li><strong>选版本</strong>：QR 共 1–40 版（版本 1 为 21×21 模块，每升 1 版边长 +4），按「数据字节数 + 纠错级别」自动选最小能装下的版本。当前：<span class="mono" id="abInfo">—</span>。</li>
+        <li><strong>加纠错</strong>：数据切成 8 bit 码字后，用 <b>Reed–Solomon 纠错算法</b>算出校验码字接在尾部——所以码面破损、遮挡一角仍扫得出。当前级别 <b><span class="mono" id="abEcc">—</span></b>。</li>
+        <li><strong>填矩阵</strong>：先放三个「回」字定位角、时序图案与对齐图案确定坐标系，再把全部码字按之字形填进剩余格子。</li>
+        <li><strong>选掩码</strong>：同一份数据有 8 种黑白翻转方式，逐个按「避免大面积同色块 / 伪定位图案」规则打分取最优——这就是为什么内容改一个字，整张码看起来完全不同。</li>
+      </ol>
+      <p class="muted">一句话：二维码 = 分级冗余的纠错编码 + 固定坐标系图案 + 掩码择优，三者叠加让扫码器既能找到码、又能读出数据、还能容错。</p>
+    </div>
+  </details>
+</div>
+<script src="../diag.js"></script>
+<script src="../registry.js"></script>
+<script src="vendor/qrcode-generator.js"></script>
+<script src="index.js"></script>
+</body>
+</html>

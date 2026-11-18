@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <title>矩阵计算器 - 浏览器工具箱</title>
+  <link rel="stylesheet" href="../common.css">
+  <style>
+    .flow-head { display: flex; align-items: center; gap: 8px; margin: 18px 0 8px; }
+    .flow-head:first-of-type { margin-top: 0; }
+    .flow-no {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 22px; height: 22px; border-radius: 50%;
+      background: var(--accent); color: #fff;
+      font: 600 13px/1 Consolas, monospace; flex-shrink: 0;
+    }
+    .flow-head h2 { margin: 0; font-size: 15px; }
+    .draft-tag {
+      font-size: 11px; color: var(--muted); font-family: Consolas, monospace;
+      margin-left: auto; white-space: nowrap;
+      cursor: pointer; text-decoration: underline dotted;
+    }
+    .draft-tag:hover { color: var(--fg); }
+    #draftPanel[hidden] { display: none; }
+    #draftPanel { position: relative; z-index: 20; margin-bottom: 14px; box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12); }
+    .draft-info {
+      font: 12.5px/1.9 Consolas, monospace;
+      white-space: pre-wrap;
+      background: var(--bg);
+      border-radius: 6px;
+      padding: 8px 12px;
+    }
+
+    /* 运算法则速查（默认折叠） */
+    details.rules { margin-top: 14px; }
+    details.rules summary { cursor: pointer; font-size: 12px; color: var(--muted); width: fit-content; }
+    details.rules summary:hover { color: var(--fg); }
+
+    .input-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    @media (max-width: 959px) { .input-grid { grid-template-columns: 1fr; } }
+    .mat-card .card-head { flex-wrap: wrap; gap: 6px 10px; }
+    .stepper { display: inline-flex; align-items: center; gap: 4px; }
+    .stepper button { width: 24px; padding: 2px 0; font-weight: 600; }
+    .stepper .n { min-width: 28px; text-align: center; font: 13px Consolas, monospace; }
+    .presets { display: flex; gap: 6px; margin-left: auto; }
+    .mgrid { display: grid; gap: 6px; margin-top: 8px; }
+    .mgrid input {
+      width: 64px;
+      padding: 5px 6px;
+      text-align: center;
+      font: 13px/1.4 Consolas, monospace;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: var(--bg);
+      color: var(--fg);
+    }
+    .mgrid input:focus { outline: none; border-color: var(--accent); }
+
+    /* ② 运算分段按钮 */
+    .op-seg { display: flex; flex-wrap: wrap; gap: 8px; }
+    .op-seg button {
+      font: inherit; font-size: 14px; padding: 8px 16px;
+      border: 1px solid var(--line); border-radius: 8px;
+      background: var(--card); color: var(--fg); cursor: pointer;
+    }
+    .op-seg button:hover { border-color: var(--accent); }
+    .op-seg button.active { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600; }
+    .scalar-row { display: flex; align-items: center; gap: 8px; margin-top: 10px; }
+    .scalar-row input { font: inherit; padding: 5px 8px; width: 72px; border: 1px solid var(--line); border-radius: 6px; background: var(--bg); color: var(--fg); }
+    .scalar-row[hidden] { display: none; }
+
+    /* ③ 公式行 + 结果 */
+    .formula-line {
+      font: 600 17px/1.5 Consolas, monospace;
+      padding: 10px 14px;
+      background: var(--bg);
+      border-left: 3px solid var(--accent);
+      border-radius: 6px;
+      word-break: break-all;
+    }
+    .result-grid { display: grid; gap: 6px; justify-content: start; margin-top: 10px; }
+    .result-grid .cell {
+      min-width: 72px;
+      padding: 5px 8px;
+      text-align: center;
+      font: 14px/1.4 Consolas, monospace;
+      background: var(--bg);
+      border: 1px solid var(--line);
+      border-radius: 6px;
+    }
+    .scalar-out { font: 26px/1.4 Consolas, monospace; margin-top: 10px; }
+    .mat-err {
+      background: color-mix(in srgb, var(--danger) 12%, transparent);
+      color: var(--danger);
+      padding: 8px 12px;
+      border-radius: 8px;
+      font-size: 13px;
+      margin-top: 10px;
+    }
+    .result-box { margin-top: 10px; }
+    details.steps-more { margin-top: 6px; }
+    details.steps-more summary { cursor: pointer; font-size: 12px; color: var(--muted); }
+    ol.steps li { white-space: pre-wrap; font: 12.5px/1.8 Consolas, "Microsoft YaHei", monospace; }  /* pre-wrap：保留空格缩进与矩阵快照对齐 */
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <div class="topbar">
+    <a class="back" href="../../popup/popup.html">← 工具箱</a>
+    <h1>🔢 矩阵计算器</h1>
+    <span class="ver-tag" id="verTag"></span>
+    <span class="draft-tag" id="draftTag" title="点击查看已保存的草稿">草稿自动保存（本机）</span>
+  </div>
+
+  <!-- 草稿查看面板（点顶栏「草稿已保存」开合） -->
+  <div id="draftPanel" class="card" hidden>
+    <div class="card-head">
+      <h2>已保存的草稿</h2>
+      <span class="muted">存于本机 chrome.storage.local，重开页面自动恢复</span>
+    </div>
+    <div id="draftInfo" class="draft-info"></div>
+    <div style="margin-top:8px; display:flex; gap:8px;">
+      <button id="copyDraftBtn" class="btn-sm">复制草稿 JSON</button>
+      <button id="clearDraftBtn" class="btn-sm">清除草稿</button>
+    </div>
+  </div>
+
+  <!-- ① 输入 -->
+  <div class="flow-head">
+    <span class="flow-no">①</span><h2>输入矩阵</h2>
+    <span class="muted">格子可直接粘贴 Excel / TSV / 空格表格，自动铺满调尺寸</span>
+    <span class="draft-tag" id="draftTag2">草稿自动保存（本机）</span>
+  </div>
+  <div class="input-grid">
+    <div class="card mat-card">
+      <div class="card-head">
+        <h2>矩阵 A</h2>
+        <span class="stepper">行 <button data-m="A" data-k="r" data-d="-1">−</button><span class="n" id="A-r">2</span><button data-m="A" data-k="r" data-d="1">＋</button></span>
+        <span class="stepper">列 <button data-m="A" data-k="c" data-d="-1">−</button><span class="n" id="A-c">2</span><button data-m="A" data-k="c" data-d="1">＋</button></span>
+        <span class="presets">
+          <button class="btn-sm" data-m="A" data-preset="eye">单位阵</button>
+          <button class="btn-sm" data-m="A" data-preset="zero">清零</button>
+          <button class="btn-sm" data-m="A" data-preset="random">随机</button>
+        </span>
+      </div>
+      <div class="mgrid" id="grid-A"></div>
+    </div>
+    <div class="card mat-card">
+      <div class="card-head">
+        <h2>矩阵 B</h2>
+        <span class="stepper">行 <button data-m="B" data-k="r" data-d="-1">−</button><span class="n" id="B-r">2</span><button data-m="B" data-k="r" data-d="1">＋</button></span>
+        <span class="stepper">列 <button data-m="B" data-k="c" data-d="-1">−</button><span class="n" id="B-c">2</span><button data-m="B" data-k="c" data-d="1">＋</button></span>
+        <span class="presets">
+          <button class="btn-sm" data-m="B" data-preset="eye">单位阵</button>
+          <button class="btn-sm" data-m="B" data-preset="zero">清零</button>
+          <button class="btn-sm" data-m="B" data-preset="random">随机</button>
+        </span>
+      </div>
+      <div class="mgrid" id="grid-B"></div>
+    </div>
+  </div>
+
+  <!-- ② 选运算 -->
+  <div class="flow-head">
+    <span class="flow-no">②</span><h2>选运算</h2>
+    <span class="muted" id="opHint"></span>
+  </div>
+  <div class="op-seg" id="opSeg">
+    <button data-op="mul" class="active">A × B</button>
+    <button data-op="add">A + B</button>
+    <button data-op="sub">A − B</button>
+    <button data-op="transpose">Aᵀ</button>
+    <button data-op="det">det(A)</button>
+    <button data-op="inv">A⁻¹</button>
+    <button data-op="trace">tr(A)</button>
+    <button data-op="rank">rank(A)</button>
+    <button data-op="scalar">k·A</button>
+  </div>
+  <div class="scalar-row" id="scalarRow" hidden>
+    <span>系数 k =</span>
+    <input type="text" id="scalarK" value="2">
+    <span class="muted">乘以 A 的每个元素</span>
+  </div>
+
+  <!-- ③ 公式与结果 -->
+  <div class="flow-head">
+    <span class="flow-no">③</span><h2>公式与结果</h2>
+    <span class="muted" id="outMeta"></span>
+    <span style="flex:1"></span>
+    <button id="copyTsvBtn" class="btn-sm">复制 TSV</button>
+    <button id="copyTxtBtn" class="btn-sm">复制文本</button>
+  </div>
+  <div class="card">
+    <div class="formula-line" id="formulaLine">在上方选一个运算，这里显示公式与结果</div>
+    <div id="outBox" class="result-box"></div>
+  </div>
+  <div class="card">
+    <div class="card-head">
+      <h2>计算过程</h2>
+      <span class="muted" id="stepsMeta">—</span>
+    </div>
+    <ol class="steps" id="stepsList"></ol>
+    <details class="steps-more" id="stepsMore" hidden>
+      <summary>展开其余步骤</summary>
+      <ol class="steps" id="stepsMoreList"></ol>
+    </details>
+  </div>
+
+  <details class="rules">
+    <summary>运算法则速查（随时核对手算用）</summary>
+    <div class="about-body">
+      <p class="muted">记号：A 是 m×n（m 行 n 列）矩阵，A[i][j] 表示第 i 行第 j 列元素；I 是单位阵。</p>
+      <p><strong>矩阵乘法 A × B</strong>（m×n · n×p → m×p，A 的列数必须 = B 的行数）：<br>
+      (AB)[i][j] = Σₖ A[i][k] × B[k][j]（A 的第 i 行与 B 的第 j 列对应相乘再相加）。注意 AB ≠ BA。</p>
+      <p><strong>加 / 减 A ± B</strong>：必须同形状，逐元素相加/减。(A ± B)[i][j] = A[i][j] ± B[i][j]。</p>
+      <p><strong>转置 Aᵀ</strong>：行列互换，(Aᵀ)[i][j] = A[j][i]。性质：(Aᵀ)ᵀ = A；(AB)ᵀ = BᵀAᵀ；(A ± B)ᵀ = Aᵀ ± Bᵀ。</p>
+      <p><strong>数乘 k·A</strong>：每个元素乘 k。(kA)[i][j] = k·A[i][j]；det(kA) = kⁿ · det(A)（n 为阶数）。</p>
+      <p><strong>行列式 det(A)</strong>（方阵专属）：<br>
+      2×2：|A| = ad − bc（a=左上, b=右上, c=左下, d=右下）。<br>
+      3×3：对角线法则——三条主对角线方向乘积取正、三条副对角线方向乘积取负，求和。<br>
+      性质：|AB| = |A|·|B|；|Aᵀ| = |A|；交换两行 det 变号；某行乘 k → det × k；某行加上另一行的倍数 → det 不变（消元依据）；某行全为 0 → det = 0。</p>
+      <p><strong>逆矩阵 A⁻¹</strong>（方阵且 det ≠ 0 才存在）：<br>
+      定义：A·A⁻¹ = A⁻¹·A = I。<br>
+      2×2 速算：A⁻¹ = (1/det) × [[d, −b], [−c, a]]（主对角交换、副对角变号）。<br>
+      伴随矩阵法：A⁻¹ = adj(A) / det(A)。<br>
+      性质：(AB)⁻¹ = B⁻¹A⁻¹；(kA)⁻¹ = (1/k)·A⁻¹（k≠0）；(Aᵀ)⁻¹ = (A⁻¹)ᵀ。</p>
+      <p><strong>迹 tr(A)</strong>（方阵专属）：主对角线元素之和。性质：tr(A±B) = tr(A) ± tr(B)；tr(AB) = tr(BA)；tr(kA) = k·tr(A)。</p>
+      <p><strong>秩 rank(A)</strong>：化为行阶梯形后非零主元行的个数 = 行（列）向量组中线性无关的最大个数。性质：rank(Aᵀ) = rank(A)；rank(AB) ≤ min(rank A, rank B)；n 阶方阵 rank = n ⇔ 可逆 ⇔ det ≠ 0。</p>
+      <p class="muted">提示：页面上的「计算过程」卡会按这些法则逐步展开你当前输入的每一步算式，可直接对照核验。</p>
+    </div>
+  </details>
+</div>
+<script src="../diag.js"></script>
+<script src="../registry.js"></script>
+<script src="index.js"></script>
+</body>
+</html>

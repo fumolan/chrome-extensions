@@ -262,3 +262,23 @@ pre.json {
   color: var(--muted);
   font-size: 12px;
 }
+
+/* 版本水印：贴在工具页标题旁，用于确认页面是否为当前版本 */
+.ver-tag {
+  color: var(--muted);
+  font-size: 11px;
+  font-family: Consolas, monospace;
+  white-space: nowrap;
+}
+
+/* 页面级 JS 错误横幅：全局 error/unhandledrejection 钩子写入 */
+#jsErrBanner {
+  margin-bottom: 14px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--danger) 12%, transparent);
+  color: var(--danger);
+  font: 12px/1.6 Consolas, monospace;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
