@@ -16,7 +16,7 @@
   const APP_VERSION =
     (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.getManifest)
       ? chrome.runtime.getManifest().version
-      : '1.6.3';
+      : '1.6.5';
 
   const editor = $('#editor');
   const listEl = $('#noteList');
@@ -819,13 +819,16 @@
   }
 
   function downloadBlob(blob, filename) {
+    const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
+    a.href = url;
     a.download = filename;
     document.body.appendChild(a);
     a.click();
     a.remove();
-    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+    // 下载是浏览器异步读流：过早 revoke 会掐断在读的 blob 流，落盘半截文件
+    // （杀毒软件实时扫描会拖慢写盘，1 秒远不够）。放宽到 60 秒，页面关闭时浏览器会统一回收。
+    setTimeout(() => URL.revokeObjectURL(url), 60 * 1000);
   }
 
   function exportHtml() {
@@ -992,6 +995,7 @@
     dlg.querySelector('input[name="mode"][value="' + mode + '"]').checked = true;
     $('#serverUrl').value = s.serverUrl || 'http://localhost:3001';
     updateServerRow();
+    renderStorageLocation(s);
     dlg.showModal();
   });
 
@@ -1065,6 +1069,148 @@
   });
 
   $('#btnCancelSettings').addEventListener('click', () => $('#settingsDialog').close());
+
+  /* ---------- 数据位置与备份（设置弹窗内） ---------- */
+
+  // IndexedDB 落盘目录名（Chrome 对不同来源的命名规则）：
+  // 扩展 = chrome-extension_<id>_0.indexeddb.leveldb；http/https = <协议>_<域名>_<端口>_0...
+  function idbFolderName() {
+    if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.id) {
+      return 'chrome-extension_' + chrome.runtime.id + '_0.indexeddb.leveldb';
+    }
+    const isHttps = location.protocol === 'https:';
+    const defaultPort = isHttps ? 443 : 80;
+    const port = location.port && Number(location.port) !== defaultPort ? '_' + location.port : '';
+    return (isHttps ? 'https_' + location.hostname : 'http_' + location.hostname + port) + '_0.indexeddb.leveldb';
+  }
+
+  // 浏览器用户数据目录（按 UA 区分 Chrome/Edge；%LOCALAPPDATA% 可直接粘进资源管理器地址栏）
+  function browserDataRoot() {
+    return navigator.userAgent.includes('Edg/')
+      ? '%LOCALAPPDATA%\\Microsoft\\Edge\\User Data'
+      : '%LOCALAPPDATA%\\Google\\Chrome\\User Data';
+  }
+
+  // 弹窗打开时按当前存储模式渲染位置说明；本地模式同时准备可复制的完整路径
+  function renderStorageLocation(s) {
+    const el = $('#storagePathLine');
+    const btnCopy = $('#btnCopyPath');
+    if (s.mode === 'remote' && s.serverUrl) {
+      el.innerHTML = '当前保存到：<b>REST 服务器</b>（' + escapeHtml(s.serverUrl) + '）<br>' +
+        '数据库文件 <code>notes.db</code> 在运行 <code>node server.js</code> 的 server 目录下' +
+        '（可用环境变量 <code>DB_FILE</code> 改存放路径），直接备份该文件或用下方 JSON 备份均可';
+      btnCopy.hidden = true;
+      return;
+    }
+    const folder = idbFolderName();
+    const full = browserDataRoot() + '\\Default\\IndexedDB\\' + folder;
+    el.innerHTML = '当前保存到：<b>浏览器 IndexedDB 数据库</b>（LevelDB 内部格式）<br>' +
+      '落盘目录：<code>' + escapeHtml(full) + '</code><br>' +
+      '<span class="hint-inline">若使用的不是 Default 配置文件，把路径中 Default 换成对应配置名</span>';
+    btnCopy.hidden = false;
+    btnCopy.dataset.path = full;
+  }
+
+  $('#btnCopyPath').addEventListener('click', async (e) => {
+    const p = e.currentTarget.dataset.path || '';
+    if (!p) return;
+    try {
+      await navigator.clipboard.writeText(p);
+      toast('已复制路径，粘贴到资源管理器地址栏（Win+E 后 Ctrl+V 回车）即可打开');
+    } catch {
+      toast('复制失败，请手动选择路径文本复制', true);
+    }
+  });
+
+  // 构建备份 JSON（纯函数，便于回放测试）：全量笔记（含正文/附件 base64）+ 元信息
+  function buildBackupPayload(notes) {
+    return {
+      app: 'rich-notes',
+      schema: 1,
+      exportedAt: new Date().toISOString(),
+      count: notes.length,
+      notes,
+    };
+  }
+
+  async function runBackup() {
+    let notes;
+    try {
+      notes = await NoteStore.list('');
+    } catch (e) {
+      toast('读取笔记失败：' + e.message, true);
+      return;
+    }
+    if (!notes.length) { toast('当前存储里没有笔记可备份'); return; }
+    const payload = buildBackupPayload(notes);
+    const d = new Date();
+    const p = (v) => String(v).padStart(2, '0');
+    const name = 'rich-notes-backup-' + d.getFullYear() + p(d.getMonth() + 1) + p(d.getDate()) +
+      '-' + p(d.getHours()) + p(d.getMinutes()) + '.json';
+    downloadBlob(new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' }), name);
+    toast('已备份 ' + notes.length + ' 条笔记（含附件）');
+  }
+
+  // 解析并校验备份文件（纯函数，便于回放测试）：返回 {ok, notes, skipped, error}
+  function parseBackup(text) {
+    let data;
+    try {
+      data = JSON.parse(text);
+    } catch {
+      return { ok: false, error: '不是有效的 JSON 文件' };
+    }
+    if (!data || !Array.isArray(data.notes)) {
+      return { ok: false, error: '文件里没有笔记数据（缺少 notes 数组）' };
+    }
+    const notes = [];
+    let skipped = 0;
+    for (const n of data.notes) {
+      if (n && typeof n.id === 'string' && n.id) notes.push(n);
+      else skipped++;
+    }
+    return { ok: true, notes, skipped };
+  }
+
+  async function runRestore(file) {
+    let text;
+    try {
+      text = await file.text();
+    } catch (e) {
+      toast('读取备份文件失败：' + e.message, true);
+      return;
+    }
+    const r = parseBackup(text);
+    if (!r.ok) { toast(r.error, true); return; }
+    if (!r.notes.length) { toast('备份文件里没有可导入的笔记'); return; }
+    let existing = [];
+    try { existing = await NoteStore.list(''); } catch { /* 列不出现有笔记就按无重叠处理 */ }
+    const existingIds = new Set(existing.map((n) => n.id));
+    const overlap = r.notes.filter((n) => existingIds.has(n.id)).length;
+    const msg = '备份含 ' + r.notes.length + ' 条笔记：将新增 ' + (r.notes.length - overlap) +
+      ' 条、覆盖现有 ' + overlap + ' 条' + (r.skipped ? '（另有 ' + r.skipped + ' 条无效记录跳过）' : '') +
+      '。覆盖后无法撤销，是否继续？';
+    if (!confirm(msg)) return;
+    let ok = 0;
+    let fail = 0;
+    for (const n of r.notes) {
+      try {
+        await NoteStore.save(n);
+        ok++;
+      } catch {
+        fail++;
+      }
+    }
+    refreshList();
+    toast('恢复完成：成功 ' + ok + ' 条' + (fail ? '，失败 ' + fail + ' 条' : ''), fail > 0);
+  }
+
+  $('#btnBackup').addEventListener('click', runBackup);
+  $('#btnRestore').addEventListener('click', () => $('#restoreInput').click());
+  $('#restoreInput').addEventListener('change', (e) => {
+    const f = e.target.files && e.target.files[0];
+    e.target.value = '';
+    if (f) runRestore(f);
+  });
 
   /* ---------- 导出下拉菜单 ---------- */
 
